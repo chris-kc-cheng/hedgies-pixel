@@ -10,11 +10,15 @@ other's back, rides briefly, then hops away.
 
 ## Controls
 
-- Left-click a hedgehog: add one.
-- New hedgehogs appear at a random position along the top of that monitor and fall in.
-- Drag a hedgehog: relocate it.
-- Right-click a hedgehog: remove it. Removing the last hedgehog exits.
-- The notification-area menu also offers **Add hedgehog** and **Exit**.
+- Left-click an animal: add another with the same selected skin.
+- New animals appear at a random position along the top of that monitor and fall in.
+- Drag an animal: relocate it.
+- Right-click an animal: switch its skin between **Hedgehog**, **Poodle**, **Labubu**,
+  and **Random**, remove that animal, close every animal while leaving the app running,
+  or remove every animal and exit. Animals set to **Random** choose a fresh random skin
+  when duplicated.
+- The notification-area menu also offers **Add animal**, **Close all animals**, and
+  **Remove all animals and exit**.
 
 ## Build and run
 

@@ -28,6 +28,15 @@ Check(MeetingRules.CloseEnough(100, 200, 145, 204, 80, 56), "nearby pets can mee
 Check(!MeetingRules.CloseEnough(100, 200, 160, 204, 80, 56), "distant pets do not meet");
 Check(!MeetingRules.CloseEnough(100, 200, 145, 230, 80, 56), "pets on different heights do not meet");
 
+Check(AnimalSkinSelection.Resolve(AnimalSkin.Poodle, 0) == AnimalSkin.Poodle,
+    "a selected skin is preserved");
+Check(AnimalSkinSelection.Resolve(AnimalSkin.Random, 0) == AnimalSkin.Hedgehog,
+    "random skin can select hedgehog");
+Check(AnimalSkinSelection.Resolve(AnimalSkin.Random, 1) == AnimalSkin.Poodle,
+    "random skin can select poodle");
+Check(AnimalSkinSelection.Resolve(AnimalSkin.Random, 2) == AnimalSkin.Labubu,
+    "random skin can select Labubu");
+
 Console.WriteLine("All geometry checks passed.");
 
 static void Check(bool condition, string message)

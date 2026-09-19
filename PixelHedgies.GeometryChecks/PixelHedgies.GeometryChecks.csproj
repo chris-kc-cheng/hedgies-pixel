@@ -9,5 +9,6 @@
     <Compile Include="../PixelHedgies/Native.cs" Link="Native.cs" />
     <Compile Include="../PixelHedgies/SurfaceTracker.cs" Link="SurfaceTracker.cs" />
     <Compile Include="../PixelHedgies/MeetingRules.cs" Link="MeetingRules.cs" />
+    <Compile Include="../PixelHedgies/AnimalSkin.cs" Link="AnimalSkin.cs" />
   </ItemGroup>
 </Project>
