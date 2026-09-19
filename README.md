@@ -18,7 +18,7 @@ other's back, rides briefly, then hops away.
 
 ## Build and run
 
-The ready-to-run Windows release is in `releases/win-x64-v8/`.
+The ready-to-run Windows release is in `releases/win-x64-v11/`.
 Double-click `PixelHedgies.exe` there. Keep the accompanying DLLs in the same
 folder; this build does not require a separate .NET installation. The EXE is
 stored with Git LFS because it exceeds GitHub's regular file-size limit. Install
