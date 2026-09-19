@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets/hedgehog.png" />
-    <Resource Include="Assets/hedgehog-actions.png" />
+    <Resource Include="Assets/hedgehog-actions-v4.png" />
+    <Resource Include="Assets/hedgehog-walk-retro-v2.png" />
   </ItemGroup>
 </Project>

@@ -4,15 +4,16 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Path = System.Windows.Shapes.Path;
 using Forms = System.Windows.Forms;
 
 namespace PixelHedgies;
 
 internal sealed class Hedgehog : Window
 {
-    internal const int WidthPx = 80;
-    internal const int HeightPx = 56;
-    internal const int FeetInset = 4;
+    internal const int WidthPx = 64;
+    internal const int HeightPx = 44;
+    internal const int FeetInset = 3;
     private const double RideHeight = HeightPx * 0.70;
     private const double HopDistance = WidthPx * 0.58;
     private const double Gravity = 1100;
@@ -22,6 +23,9 @@ internal sealed class Hedgehog : Window
     private readonly App _app;
     private readonly ImageBrush _sprite;
     private readonly Border _body;
+    private readonly Grid _visual;
+    private readonly Canvas _footLayer;
+    private readonly Path _farFrontFoot;
     private readonly Random _random = new();
     private nint _handle;
     private nint _support;
@@ -68,7 +72,7 @@ internal sealed class Hedgehog : Window
         Topmost = true;
 
         _sprite = new ImageBrush(Frames.Value[0]) { Stretch = Stretch.Uniform, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Bottom };
-        RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.HighQuality);
+        RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
         _body = new Border
         {
             Width = WidthPx,
@@ -76,8 +80,21 @@ internal sealed class Hedgehog : Window
             Background = _sprite,
             RenderTransformOrigin = new System.Windows.Point(0.5, 0.5)
         };
-        RenderOptions.SetBitmapScalingMode(_body, BitmapScalingMode.HighQuality);
-        Content = _body;
+        RenderOptions.SetBitmapScalingMode(_body, BitmapScalingMode.NearestNeighbor);
+        _farFrontFoot = new Path
+        {
+            Data = Geometry.Parse("M 1,0 L 5,0 L 5,3 L 7,3 L 7,7 L 0,7 L 0,4 L 1,4 Z"),
+            Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(119, 55, 39)),
+            Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(32, 19, 17)),
+            StrokeThickness = 1
+        };
+        _footLayer = new Canvas { Width = WidthPx, Height = HeightPx, IsHitTestVisible = false };
+        _footLayer.Children.Add(_farFrontFoot);
+        _visual = new Grid { Width = WidthPx, Height = HeightPx, RenderTransformOrigin = new System.Windows.Point(0.5, 0.5) };
+        _visual.Children.Add(_footLayer);
+        _visual.Children.Add(_body);
+        Content = _visual;
+        ShowFrame(0);
         SourceInitialized += (_, _) =>
         {
             _handle = new WindowInteropHelper(this).Handle;
@@ -91,15 +108,18 @@ internal sealed class Hedgehog : Window
 
     private static BitmapSource[] LoadFrames()
     {
-        var sheet = new BitmapImage(new Uri("pack://application:,,,/Assets/hedgehog-actions.png"));
+        var sheet = new BitmapImage(new Uri("pack://application:,,,/Assets/hedgehog-actions-v4.png"));
+        var walk = new BitmapImage(new Uri("pack://application:,,,/Assets/hedgehog-walk-retro-v2.png"));
         var frames = new BitmapSource[6];
         for (var i = 0; i < frames.Length; i++)
         {
             var column = i % 3;
             var row = i / 3;
-            frames[i] = row == 0
+            frames[i] = i < 2
+                ? new CroppedBitmap(walk, new Int32Rect(i * 768, 240, 768, 620))
+                : row == 0
                 ? new CroppedBitmap(sheet, new Int32Rect(column * 512, 100, 512, 400))
-                : new CroppedBitmap(sheet, new Int32Rect(column * 512, 542, 512, 462));
+                : new CroppedBitmap(sheet, new Int32Rect(column * 512 + 40, 542, 432, 420));
         }
         return frames;
     }
@@ -120,8 +140,9 @@ internal sealed class Hedgehog : Window
         var width = WidthPx * scale.M11;
         var height = HeightPx * scale.M22;
         if (Math.Abs(Width - width) < 0.01 && Math.Abs(Height - height) < 0.01) return;
-        Width = _body.Width = width;
-        Height = _body.Height = height;
+        Width = _body.Width = _visual.Width = _footLayer.Width = width;
+        Height = _body.Height = _visual.Height = _footLayer.Height = height;
+        PlaceFarFrontFoot(_currentFrame);
     }
 
     public void Tick(double dt, SurfaceTracker tracker)
@@ -224,17 +245,15 @@ internal sealed class Hedgehog : Window
             Trick.Blink => 2,
             Trick.Look => 3,
             Trick.Roll => 4,
-            _ => walking ? (int)(_phase * 7) % 2 : 5
+            _ => walking ? (int)(_phase * 8) % 2 : 5
         };
         ShowFrame(frame);
-        var bob = walking ? Math.Sin(_phase * 20) * 1.3 : 0;
-        _body.RenderTransform = new TransformGroup
+        _visual.RenderTransform = new TransformGroup
         {
             Children = new TransformCollection
             {
                 new ScaleTransform(_trick is Trick.Look or Trick.Roll ? 1 : _direction, 1),
-                new RotateTransform(_trick == Trick.Roll ? _rollAngle : 0),
-                new TranslateTransform(0, bob)
+                new RotateTransform(_trick == Trick.Roll ? _rollAngle : 0)
             }
         };
         _grounded = _support != 0 || Math.Abs(Y + HeightPx - FeetInset - floor) <= 2;
@@ -294,8 +313,8 @@ internal sealed class Hedgehog : Window
             X = host.X;
             Y = host.Y - RideHeight + Math.Sin(_phase * 12) * 1.5;
         }
-        ShowFrame((int)(_phase * 10) % 2);
-        _body.RenderTransform = new TransformGroup
+        ShowFrame((int)(_phase * 8) % 2);
+        _visual.RenderTransform = new TransformGroup
         {
             Children = new TransformCollection
             {
@@ -331,6 +350,16 @@ internal sealed class Hedgehog : Window
         if (frame == _currentFrame) return;
         _sprite.ImageSource = Frames.Value[frame];
         _currentFrame = frame;
+        PlaceFarFrontFoot(frame);
+    }
+
+    private void PlaceFarFrontFoot(int frame)
+    {
+        _farFrontFoot.Visibility = frame is 0 or 1 or 5 ? Visibility.Visible : Visibility.Hidden;
+        var scale = _body.Width / WidthPx;
+        _farFrontFoot.RenderTransform = new ScaleTransform(scale, scale);
+        Canvas.SetLeft(_farFrontFoot, (frame == 1 ? 38 : frame == 5 ? 35 : 32) * scale);
+        Canvas.SetTop(_farFrontFoot, 36 * scale);
     }
 
     private void UpdateTrick(double dt, bool grounded)

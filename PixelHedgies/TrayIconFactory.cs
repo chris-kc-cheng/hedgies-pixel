@@ -12,7 +12,7 @@ internal static class TrayIconFactory
     public static Icon Create()
     {
         var resource = System.Windows.Application.GetResourceStream(
-            new Uri("pack://application:,,,/Assets/hedgehog-actions.png"))!;
+            new Uri("pack://application:,,,/Assets/hedgehog-actions-v4.png"))!;
         using var source = new Bitmap(resource.Stream);
         using var small = new Bitmap(32, 32);
         using (var graphics = Graphics.FromImage(small))
