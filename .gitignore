@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+.vs/
+.tools/
+dotnet-install.ps1
+.dotnet/
+NuGet/
