@@ -20,8 +20,9 @@ internal static class TrayIconFactory
             graphics.Clear(Color.Transparent);
             graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
             graphics.PixelOffsetMode = PixelOffsetMode.Half;
-            graphics.DrawImage(source, new Rectangle(0, 4, 32, 23),
-                new Rectangle(0, 100, 512, 400), GraphicsUnit.Pixel);
+            // The front-facing frame reads more clearly as an avatar at notification-area size.
+            graphics.DrawImage(source, new Rectangle(2, 1, 28, 30),
+                new Rectangle(40, 542, 432, 420), GraphicsUnit.Pixel);
         }
         var handle = small.GetHicon();
         try

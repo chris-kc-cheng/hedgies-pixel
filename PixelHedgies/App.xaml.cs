@@ -25,8 +25,9 @@ public partial class App : System.Windows.Application
             Visible = true,
             ContextMenuStrip = new Forms.ContextMenuStrip()
         };
-        _tray.ContextMenuStrip.Items.Add("Add pet", null, (_, _) => AddHedgehog());
-        _tray.ContextMenuStrip.Items.Add("Exit", null, (_, _) => Shutdown());
+        _tray.ContextMenuStrip.Items.Add("Add animal", null, (_, _) => AddHedgehog());
+        _tray.ContextMenuStrip.Items.Add("Close all animals", null, (_, _) => CloseAllAnimals());
+        _tray.ContextMenuStrip.Items.Add("Remove all animals and exit", null, (_, _) => RemoveAllAndExit());
         AddHedgehog();
         _lastTicks = System.Diagnostics.Stopwatch.GetTimestamp();
         _timer.Tick += Tick;
@@ -45,7 +46,8 @@ public partial class App : System.Windows.Application
         // Enter from the top with enough body visible to notice the drop.
         // Feet begin below the top edge, avoiding an off-screen perch on a maximized window.
         var y = monitor.Top - Hedgehog.HeightPx + Hedgehog.HeightPx / 3;
-        var pet = new Hedgehog(this, x, y, parent?.Skin ?? PetSkin.Hedgehog);
+        var selection = parent?.SkinSelection ?? AnimalSkin.Hedgehog;
+        var pet = new Hedgehog(this, x, y, selection);
         _hedgehogs.Add(pet);
         pet.Show();
         pet.Place();
@@ -57,6 +59,22 @@ public partial class App : System.Windows.Application
         _hedgehogs.Remove(pet);
         pet.Close();
         if (_hedgehogs.Count == 0) Shutdown();
+    }
+
+    internal void CloseAllAnimals()
+    {
+        foreach (var pet in _hedgehogs.ToArray())
+        {
+            pet.DetachInteractions();
+            pet.Close();
+        }
+        _hedgehogs.Clear();
+    }
+
+    internal void RemoveAllAndExit()
+    {
+        CloseAllAnimals();
+        Shutdown();
     }
 
     private void Tick(object? sender, EventArgs e)

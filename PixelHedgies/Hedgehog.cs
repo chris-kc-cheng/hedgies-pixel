@@ -4,15 +4,10 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using ContextMenu = System.Windows.Controls.ContextMenu;
-using MenuItem = System.Windows.Controls.MenuItem;
-using Separator = System.Windows.Controls.Separator;
 using Path = System.Windows.Shapes.Path;
 using Forms = System.Windows.Forms;
 
 namespace PixelHedgies;
-
-internal enum PetSkin { Hedgehog, Poodle, Labubu }
 
 internal sealed class Hedgehog : Window
 {
@@ -24,9 +19,12 @@ internal sealed class Hedgehog : Window
     private const double Gravity = 1100;
     private const double WalkSpeed = 30;
     private enum Trick { None, Blink, Look, Roll }
-    private static readonly Lazy<BitmapSource[]> HedgehogFrames = new(LoadFrames);
-    private static readonly Lazy<BitmapSource[]> PoodleFrames = new(() => LoadSkinFrames("poodle"));
-    private static readonly Lazy<BitmapSource[]> LabubuFrames = new(() => LoadSkinFrames("labubu"));
+    private static readonly Dictionary<AnimalSkin, Lazy<BitmapSource[]>> Frames = new()
+    {
+        [AnimalSkin.Hedgehog] = new(LoadFrames),
+        [AnimalSkin.Poodle] = new(() => LoadSkinFrames("poodle")),
+        [AnimalSkin.Labubu] = new(() => LoadSkinFrames("labubu"))
+    };
     private readonly App _app;
     private readonly ImageBrush _sprite;
     private readonly Border _body;
@@ -34,8 +32,6 @@ internal sealed class Hedgehog : Window
     private readonly Canvas _footLayer;
     private readonly Path _farFrontFoot;
     private readonly Random _random = new();
-    private readonly Dictionary<PetSkin, MenuItem> _skinItems = [];
-    private PetSkin _skin;
     private nint _handle;
     private nint _support;
     private Native.Rect _supportBounds;
@@ -60,16 +56,19 @@ internal sealed class Hedgehog : Window
     private double _dragOffsetY;
     private Hedgehog? _host;
     private Hedgehog? _rider;
+    private AnimalSkin _skin;
+    private Forms.ContextMenuStrip? _contextMenu;
 
     public double X { get; private set; }
     public double Y { get; private set; }
-    internal PetSkin Skin => _skin;
     internal bool IsRiding => _host is not null;
+    internal AnimalSkin SkinSelection { get; private set; }
 
-    public Hedgehog(App app, double x, double y, PetSkin skin = PetSkin.Hedgehog)
+    public Hedgehog(App app, double x, double y, AnimalSkin skinSelection)
     {
         _app = app;
-        _skin = skin;
+        SkinSelection = skinSelection;
+        _skin = AnimalSkinSelection.Resolve(skinSelection, Random.Shared.Next());
         X = x;
         Y = y;
         Width = WidthPx;
@@ -82,7 +81,7 @@ internal sealed class Hedgehog : Window
         ShowActivated = false;
         Topmost = true;
 
-        _sprite = new ImageBrush(GetFrames()[0]) { Stretch = Stretch.Uniform, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Bottom };
+        _sprite = new ImageBrush(Frames[_skin].Value[0]) { Stretch = Stretch.Uniform, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Bottom };
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
         _body = new Border
         {
@@ -114,36 +113,7 @@ internal sealed class Hedgehog : Window
         MouseLeftButtonDown += OnLeftDown;
         MouseMove += OnMove;
         MouseLeftButtonUp += OnLeftUp;
-        var menu = new ContextMenu();
-        var skins = new MenuItem { Header = "Skin" };
-        foreach (var choice in Enum.GetValues<PetSkin>())
-        {
-            var item = new MenuItem { Header = choice.ToString(), IsCheckable = true, IsChecked = choice == skin };
-            item.Click += (_, _) => ChangeSkin(choice);
-            _skinItems.Add(choice, item);
-            skins.Items.Add(item);
-        }
-        menu.Items.Add(skins);
-        menu.Items.Add(new Separator());
-        var remove = new MenuItem { Header = "Remove pet" };
-        remove.Click += (_, _) => _app.RemoveHedgehog(this);
-        menu.Items.Add(remove);
-        ContextMenu = menu;
-    }
-
-    private BitmapSource[] GetFrames() => _skin switch
-    {
-        PetSkin.Poodle => PoodleFrames.Value,
-        PetSkin.Labubu => LabubuFrames.Value,
-        _ => HedgehogFrames.Value
-    };
-
-    private void ChangeSkin(PetSkin skin)
-    {
-        _skin = skin;
-        foreach (var (choice, item) in _skinItems) item.IsChecked = choice == skin;
-        _currentFrame = -1;
-        ShowFrame(0);
+        MouseRightButtonUp += OnRightUp;
     }
 
     private static BitmapSource[] LoadSkinFrames(string skin)
@@ -339,6 +309,7 @@ internal sealed class Hedgehog : Window
 
     internal void DetachInteractions()
     {
+        _contextMenu?.Close();
         _rider?.LeaveHost(true);
         if (_host is not null) LeaveHost(false);
     }
@@ -397,15 +368,16 @@ internal sealed class Hedgehog : Window
     private void ShowFrame(int frame)
     {
         if (frame == _currentFrame) return;
-        _sprite.ImageSource = GetFrames()[frame];
+        _sprite.ImageSource = Frames[_skin].Value[frame];
         _currentFrame = frame;
         PlaceFarFrontFoot(frame);
     }
 
     private void PlaceFarFrontFoot(int frame)
     {
-        _farFrontFoot.Visibility = _skin == PetSkin.Hedgehog && frame is 0 or 1 or 5
-            ? Visibility.Visible : Visibility.Hidden;
+        _farFrontFoot.Visibility = _skin == AnimalSkin.Hedgehog && frame is 0 or 1 or 5
+            ? Visibility.Visible
+            : Visibility.Hidden;
         var scale = _body.Width / WidthPx;
         _farFrontFoot.RenderTransform = new ScaleTransform(scale, scale);
         Canvas.SetLeft(_farFrontFoot, (frame == 1 ? 38 : frame == 5 ? 35 : 32) * scale);
@@ -473,5 +445,41 @@ internal sealed class Hedgehog : Window
         if (_moved) { _support = 0; _verticalSpeed = 0; }
         else _app.AddHedgehog(this);
         e.Handled = true;
+    }
+
+    private void OnRightUp(object sender, MouseButtonEventArgs e)
+    {
+        _contextMenu?.Close();
+        var menu = _contextMenu = new Forms.ContextMenuStrip();
+        menu.Closed += (_, _) =>
+        {
+            menu.Dispose();
+            if (ReferenceEquals(_contextMenu, menu)) _contextMenu = null;
+        };
+        var skins = new Forms.ToolStripMenuItem("Change animal skin");
+        foreach (var choice in Enum.GetValues<AnimalSkin>())
+        {
+            var item = new Forms.ToolStripMenuItem(choice.ToString())
+            {
+                Checked = SkinSelection == choice
+            };
+            item.Click += (_, _) => ChangeSkin(choice);
+            skins.DropDownItems.Add(item);
+        }
+        menu.Items.Add(skins);
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Remove this animal", null, (_, _) => _app.RemoveHedgehog(this));
+        menu.Items.Add("Close all animals", null, (_, _) => _app.CloseAllAnimals());
+        menu.Items.Add("Remove all animals and exit", null, (_, _) => _app.RemoveAllAndExit());
+        menu.Show(Forms.Cursor.Position);
+        e.Handled = true;
+    }
+
+    private void ChangeSkin(AnimalSkin selection)
+    {
+        SkinSelection = selection;
+        _skin = AnimalSkinSelection.Resolve(selection, Random.Shared.Next());
+        _currentFrame = -1;
+        ShowFrame(0);
     }
 }
