@@ -21,11 +21,11 @@ public partial class App : System.Windows.Application
         _tray = new Forms.NotifyIcon
         {
             Icon = _trayIcon,
-            Text = "Pixel Hedgies - click a hedgehog to add one",
+            Text = "Pixel Hedgies - click a pet to add one",
             Visible = true,
             ContextMenuStrip = new Forms.ContextMenuStrip()
         };
-        _tray.ContextMenuStrip.Items.Add("Add hedgehog", null, (_, _) => AddHedgehog());
+        _tray.ContextMenuStrip.Items.Add("Add pet", null, (_, _) => AddHedgehog());
         _tray.ContextMenuStrip.Items.Add("Exit", null, (_, _) => Shutdown());
         AddHedgehog();
         _lastTicks = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -45,7 +45,7 @@ public partial class App : System.Windows.Application
         // Enter from the top with enough body visible to notice the drop.
         // Feet begin below the top edge, avoiding an off-screen perch on a maximized window.
         var y = monitor.Top - Hedgehog.HeightPx + Hedgehog.HeightPx / 3;
-        var pet = new Hedgehog(this, x, y);
+        var pet = new Hedgehog(this, x, y, parent?.Skin ?? PetSkin.Hedgehog);
         _hedgehogs.Add(pet);
         pet.Show();
         pet.Place();

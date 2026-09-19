@@ -4,10 +4,15 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ContextMenu = System.Windows.Controls.ContextMenu;
+using MenuItem = System.Windows.Controls.MenuItem;
+using Separator = System.Windows.Controls.Separator;
 using Path = System.Windows.Shapes.Path;
 using Forms = System.Windows.Forms;
 
 namespace PixelHedgies;
+
+internal enum PetSkin { Hedgehog, Poodle, Labubu }
 
 internal sealed class Hedgehog : Window
 {
@@ -19,7 +24,9 @@ internal sealed class Hedgehog : Window
     private const double Gravity = 1100;
     private const double WalkSpeed = 30;
     private enum Trick { None, Blink, Look, Roll }
-    private static readonly Lazy<BitmapSource[]> Frames = new(LoadFrames);
+    private static readonly Lazy<BitmapSource[]> HedgehogFrames = new(LoadFrames);
+    private static readonly Lazy<BitmapSource[]> PoodleFrames = new(() => LoadSkinFrames("poodle"));
+    private static readonly Lazy<BitmapSource[]> LabubuFrames = new(() => LoadSkinFrames("labubu"));
     private readonly App _app;
     private readonly ImageBrush _sprite;
     private readonly Border _body;
@@ -27,6 +34,8 @@ internal sealed class Hedgehog : Window
     private readonly Canvas _footLayer;
     private readonly Path _farFrontFoot;
     private readonly Random _random = new();
+    private readonly Dictionary<PetSkin, MenuItem> _skinItems = [];
+    private PetSkin _skin;
     private nint _handle;
     private nint _support;
     private Native.Rect _supportBounds;
@@ -54,11 +63,13 @@ internal sealed class Hedgehog : Window
 
     public double X { get; private set; }
     public double Y { get; private set; }
+    internal PetSkin Skin => _skin;
     internal bool IsRiding => _host is not null;
 
-    public Hedgehog(App app, double x, double y)
+    public Hedgehog(App app, double x, double y, PetSkin skin = PetSkin.Hedgehog)
     {
         _app = app;
+        _skin = skin;
         X = x;
         Y = y;
         Width = WidthPx;
@@ -71,7 +82,7 @@ internal sealed class Hedgehog : Window
         ShowActivated = false;
         Topmost = true;
 
-        _sprite = new ImageBrush(Frames.Value[0]) { Stretch = Stretch.Uniform, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Bottom };
+        _sprite = new ImageBrush(GetFrames()[0]) { Stretch = Stretch.Uniform, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Bottom };
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
         _body = new Border
         {
@@ -103,7 +114,43 @@ internal sealed class Hedgehog : Window
         MouseLeftButtonDown += OnLeftDown;
         MouseMove += OnMove;
         MouseLeftButtonUp += OnLeftUp;
-        MouseRightButtonUp += (_, _) => _app.RemoveHedgehog(this);
+        var menu = new ContextMenu();
+        var skins = new MenuItem { Header = "Skin" };
+        foreach (var choice in Enum.GetValues<PetSkin>())
+        {
+            var item = new MenuItem { Header = choice.ToString(), IsCheckable = true, IsChecked = choice == skin };
+            item.Click += (_, _) => ChangeSkin(choice);
+            _skinItems.Add(choice, item);
+            skins.Items.Add(item);
+        }
+        menu.Items.Add(skins);
+        menu.Items.Add(new Separator());
+        var remove = new MenuItem { Header = "Remove pet" };
+        remove.Click += (_, _) => _app.RemoveHedgehog(this);
+        menu.Items.Add(remove);
+        ContextMenu = menu;
+    }
+
+    private BitmapSource[] GetFrames() => _skin switch
+    {
+        PetSkin.Poodle => PoodleFrames.Value,
+        PetSkin.Labubu => LabubuFrames.Value,
+        _ => HedgehogFrames.Value
+    };
+
+    private void ChangeSkin(PetSkin skin)
+    {
+        _skin = skin;
+        foreach (var (choice, item) in _skinItems) item.IsChecked = choice == skin;
+        _currentFrame = -1;
+        ShowFrame(0);
+    }
+
+    private static BitmapSource[] LoadSkinFrames(string skin)
+    {
+        var first = new BitmapImage(new Uri($"pack://application:,,,/Assets/{skin}-frame-0.png"));
+        var second = new BitmapImage(new Uri($"pack://application:,,,/Assets/{skin}-frame-1.png"));
+        return [first, second, first, first, first, first];
     }
 
     private static BitmapSource[] LoadFrames()
@@ -350,14 +397,15 @@ internal sealed class Hedgehog : Window
     private void ShowFrame(int frame)
     {
         if (frame == _currentFrame) return;
-        _sprite.ImageSource = Frames.Value[frame];
+        _sprite.ImageSource = GetFrames()[frame];
         _currentFrame = frame;
         PlaceFarFrontFoot(frame);
     }
 
     private void PlaceFarFrontFoot(int frame)
     {
-        _farFrontFoot.Visibility = frame is 0 or 1 or 5 ? Visibility.Visible : Visibility.Hidden;
+        _farFrontFoot.Visibility = _skin == PetSkin.Hedgehog && frame is 0 or 1 or 5
+            ? Visibility.Visible : Visibility.Hidden;
         var scale = _body.Width / WidthPx;
         _farFrontFoot.RenderTransform = new ScaleTransform(scale, scale);
         Canvas.SetLeft(_farFrontFoot, (frame == 1 ? 38 : frame == 5 ? 35 : 32) * scale);

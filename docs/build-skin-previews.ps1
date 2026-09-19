@@ -1,6 +1,8 @@
 Add-Type -AssemblyName System.Drawing
 
 $previewDir = Join-Path $PSScriptRoot 'skin-previews'
+$gifFramesDir = Join-Path (Split-Path -Parent $PSScriptRoot) '.tools/skin-preview-frames'
+New-Item -ItemType Directory -Path $gifFramesDir -Force | Out-Null
 foreach ($skin in @('poodle', 'labubu')) {
     $sourcePath = Join-Path $previewDir "$skin-walk.png"
     $source = [System.Drawing.Bitmap]::new($sourcePath)
@@ -36,15 +38,16 @@ foreach ($skin in @('poodle', 'labubu')) {
             $canvas = [System.Drawing.Bitmap]::new(64, 44, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
             $graphics = [System.Drawing.Graphics]::FromImage($canvas)
             try {
-                $graphics.Clear([System.Drawing.Color]::FromArgb(238, 242, 245))
+                $graphics.Clear([System.Drawing.Color]::Transparent)
                 $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
                 $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
                 $graphics.DrawImage($source, $target, $crop, [System.Drawing.GraphicsUnit]::Pixel)
                 # The generated walk poses barely move at 64x44. Replace the feet
                 # with deliberate opposing steps so the preview shows a readable gait.
                 $outline = [System.Drawing.Color]::FromArgb(40, 23, 18)
+                $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
                 if ($skin -eq 'poodle') {
-                    $graphics.FillRectangle([System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(238, 242, 245)), 12, 39, 40, 4)
+                    $graphics.FillRectangle([System.Drawing.Brushes]::Transparent, 12, 39, 40, 4)
                     $legs = if ($frame -eq 0) {
                         @(@(18, 36, 15, 39, 6, 2), @(41, 36, 45, 39, 6, 2))
                     } else {
@@ -52,7 +55,7 @@ foreach ($skin in @('poodle', 'labubu')) {
                     }
                     $fill = [System.Drawing.Color]::FromArgb(246, 209, 167)
                 } else {
-                    $graphics.FillRectangle([System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(238, 242, 245)), 20, 38, 22, 5)
+                    $graphics.FillRectangle([System.Drawing.Brushes]::Transparent, 20, 38, 22, 5)
                     $legs = if ($frame -eq 0) {
                         @(@(26, 35, 22, 39, 6, 2), @(34, 35, 36, 39, 6, 2))
                     } else {
@@ -60,6 +63,7 @@ foreach ($skin in @('poodle', 'labubu')) {
                     }
                     $fill = [System.Drawing.Color]::FromArgb(170, 103, 69)
                 }
+                $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
                 foreach ($leg in $legs) {
                     $hipX, $hipY, $footX, $footY, $footWidth, $footHeight = $leg
                     $points = [System.Drawing.Point[]]@(
@@ -81,6 +85,16 @@ foreach ($skin in @('poodle', 'labubu')) {
                     }
                 }
                 $canvas.Save((Join-Path $previewDir "$skin-frame-$frame.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+                $preview = [System.Drawing.Bitmap]::new(64, 44, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+                $previewGraphics = [System.Drawing.Graphics]::FromImage($preview)
+                try {
+                    $previewGraphics.Clear([System.Drawing.Color]::FromArgb(238, 242, 245))
+                    $previewGraphics.DrawImageUnscaled($canvas, 0, 0)
+                    $preview.Save((Join-Path $gifFramesDir "$skin-frame-$frame.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+                } finally {
+                    $previewGraphics.Dispose()
+                    $preview.Dispose()
+                }
             } finally {
                 $graphics.Dispose()
                 $canvas.Dispose()
@@ -90,7 +104,7 @@ foreach ($skin in @('poodle', 'labubu')) {
         $source.Dispose()
     }
 
-    & ffmpeg -hide_banner -loglevel error -y -framerate 4 -i (Join-Path $previewDir "$skin-frame-%d.png") `
+    & ffmpeg -hide_banner -loglevel error -y -framerate 4 -i (Join-Path $gifFramesDir "$skin-frame-%d.png") `
         -filter_complex '[0:v]scale=256:176:flags=neighbor,split[a][b];[a]palettegen=reserve_transparent=1[p];[b][p]paletteuse' `
         -loop 0 (Join-Path $previewDir "$skin-preview.gif")
     if ($LASTEXITCODE -ne 0) { throw "GIF encoding failed for $skin" }

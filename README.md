@@ -10,15 +10,15 @@ other's back, rides briefly, then hops away.
 
 ## Controls
 
-- Left-click a hedgehog: add one.
-- New hedgehogs appear at a random position along the top of that monitor and fall in.
-- Drag a hedgehog: relocate it.
-- Right-click a hedgehog: remove it. Removing the last hedgehog exits.
-- The notification-area menu also offers **Add hedgehog** and **Exit**.
+- Left-click a pet: add another with the same skin.
+- New pets appear at a random position along the top of that monitor and fall in.
+- Drag a pet: relocate it.
+- Right-click a pet: choose **Skin** (Hedgehog, Poodle, or Labubu) or **Remove pet**. Removing the last pet exits.
+- The notification-area menu also offers **Add pet** (a hedgehog) and **Exit**.
 
 ## Build and run
 
-The ready-to-run Windows release is in `releases/win-x64-v11/`.
+The ready-to-run Windows release is in `releases/win-x64-v12/`.
 Double-click `PixelHedgies.exe` there. Keep the accompanying DLLs in the same
 folder; this build does not require a separate .NET installation. The EXE is
 stored with Git LFS because it exceeds GitHub's regular file-size limit. Install

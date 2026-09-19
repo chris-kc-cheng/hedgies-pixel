@@ -12,5 +12,9 @@
     <Resource Include="Assets/hedgehog.png" />
     <Resource Include="Assets/hedgehog-actions-v4.png" />
     <Resource Include="Assets/hedgehog-walk-retro-v2.png" />
+    <Resource Include="Assets/poodle-frame-0.png" />
+    <Resource Include="Assets/poodle-frame-1.png" />
+    <Resource Include="Assets/labubu-frame-0.png" />
+    <Resource Include="Assets/labubu-frame-1.png" />
   </ItemGroup>
 </Project>
