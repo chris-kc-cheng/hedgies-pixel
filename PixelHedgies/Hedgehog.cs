@@ -110,13 +110,15 @@ internal sealed class Hedgehog : Window
     {
         var sheet = new BitmapImage(new Uri("pack://application:,,,/Assets/hedgehog-actions-v4.png"));
         var walk = new BitmapImage(new Uri("pack://application:,,,/Assets/hedgehog-walk-retro-v2.png"));
+        var walkFrameWidth = walk.PixelWidth / 2;
         var frames = new BitmapSource[6];
         for (var i = 0; i < frames.Length; i++)
         {
             var column = i % 3;
             var row = i / 3;
             frames[i] = i < 2
-                ? new CroppedBitmap(walk, new Int32Rect(i * 768, 240, 768, 620))
+                ? new CroppedBitmap(walk, new Int32Rect(i * walkFrameWidth, 240,
+                    i == 0 ? walkFrameWidth : walk.PixelWidth - walkFrameWidth, 620))
                 : row == 0
                 ? new CroppedBitmap(sheet, new Int32Rect(column * 512, 100, 512, 400))
                 : new CroppedBitmap(sheet, new Int32Rect(column * 512 + 40, 542, 432, 420));
