@@ -39,6 +39,10 @@ Check(AnimalSkinSelection.Resolve("Random", availableSkins, 2) == "Labubu",
     "random skin can select Labubu");
 Check(AnimalSkinSelection.Resolve("Random", availableSkins, 3) == "Stitch",
     "random skin can select a discovered character");
+Check(AnimalSkinSelection.SkinNameFromFile("Capybara-frame-0.png") == "Capybara",
+    "first animation frame discovers one character");
+Check(AnimalSkinSelection.SkinNameFromFile("Capybara-frame-5.png") is null,
+    "action frames do not appear as separate characters");
 
 Console.WriteLine("All geometry checks passed.");
 

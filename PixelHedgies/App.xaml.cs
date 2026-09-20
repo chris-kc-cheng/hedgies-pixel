@@ -26,7 +26,6 @@ public partial class App : System.Windows.Application
             ContextMenuStrip = new Forms.ContextMenuStrip()
         };
         _tray.ContextMenuStrip.Items.Add("Add animal", null, (_, _) => AddHedgehog());
-        _tray.ContextMenuStrip.Items.Add("Close all animals", null, (_, _) => CloseAllAnimals());
         _tray.ContextMenuStrip.Items.Add("Remove all animals and exit", null, (_, _) => RemoveAllAndExit());
         AddHedgehog();
         _lastTicks = System.Diagnostics.Stopwatch.GetTimestamp();

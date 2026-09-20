@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using System.IO;
 using Path = System.Windows.Shapes.Path;
 using Forms = System.Windows.Forms;
@@ -118,12 +119,16 @@ internal sealed class Hedgehog : Window
     {
         if (skin.Equals(AnimalSkinSelection.Hedgehog, StringComparison.OrdinalIgnoreCase)) return HedgehogFrames.Value;
         if (FileFrames.TryGetValue(skin, out var frames)) return frames;
-        var single = System.IO.Path.Combine(ImageDirectory, skin + ".png");
-        var firstPath = File.Exists(single) ? single : System.IO.Path.Combine(ImageDirectory, skin + "-frame-0.png");
-        var secondPath = System.IO.Path.Combine(ImageDirectory, skin + "-frame-1.png");
-        var first = LoadImage(firstPath);
-        var second = File.Exists(secondPath) ? LoadImage(secondPath) : first;
-        frames = [first, second, first, first, first, first];
+        var firstFramePath = System.IO.Path.Combine(ImageDirectory, skin + "-frame-0.png");
+        var singlePath = System.IO.Path.Combine(ImageDirectory, skin + ".png");
+        var first = LoadImage(File.Exists(firstFramePath) ? firstFramePath : singlePath);
+        frames = new BitmapSource[6];
+        frames[0] = first;
+        for (var frame = 1; frame < frames.Length; frame++)
+        {
+            var path = System.IO.Path.Combine(ImageDirectory, $"{skin}-frame-{frame}.png");
+            frames[frame] = File.Exists(path) ? LoadImage(path) : first;
+        }
         FileFrames[skin] = frames;
         return frames;
     }
@@ -469,8 +474,8 @@ internal sealed class Hedgehog : Window
         var menu = _contextMenu = new Forms.ContextMenuStrip();
         menu.Closed += (_, _) =>
         {
-            menu.Dispose();
             if (ReferenceEquals(_contextMenu, menu)) _contextMenu = null;
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(menu.Dispose));
         };
         var skins = new Forms.ToolStripMenuItem("Change animal skin");
         foreach (var choice in AnimalSkinSelection.Discover(ImageDirectory).Append(AnimalSkinSelection.Random))
@@ -479,17 +484,19 @@ internal sealed class Hedgehog : Window
             {
                 Checked = SkinSelection.Equals(choice, StringComparison.OrdinalIgnoreCase)
             };
-            item.Click += (_, _) => ChangeSkin(choice);
+            item.Click += (_, _) => RunAfterMenuCloses(() => ChangeSkin(choice));
             skins.DropDownItems.Add(item);
         }
         menu.Items.Add(skins);
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Remove this animal", null, (_, _) => _app.RemoveHedgehog(this));
-        menu.Items.Add("Close all animals", null, (_, _) => _app.CloseAllAnimals());
-        menu.Items.Add("Remove all animals and exit", null, (_, _) => _app.RemoveAllAndExit());
+        menu.Items.Add("Remove this animal", null, (_, _) => RunAfterMenuCloses(() => _app.RemoveHedgehog(this)));
+        menu.Items.Add("Remove all animals and exit", null, (_, _) => RunAfterMenuCloses(_app.RemoveAllAndExit));
         menu.Show(Forms.Cursor.Position);
         e.Handled = true;
     }
+
+    private void RunAfterMenuCloses(Action action) =>
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, action);
 
     private void ChangeSkin(string selection)
     {

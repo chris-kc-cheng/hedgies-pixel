@@ -6,3 +6,4 @@ dotnet-install.ps1
 .dotnet/
 NuGet/
 releases/**/*.pdb
+releases/win-x64-v13/

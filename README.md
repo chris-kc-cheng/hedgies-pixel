@@ -1,6 +1,8 @@
 # Pixel Hedgies
 
-<img src="docs/hedgehog-preview-v5.gif" width="64" height="44" alt="Retro pixel hedgehog walking with four alternating legs, blinking, looking forward, and rolling">
+| Hedgehog | Poodle | Capybara |
+| --- | --- | --- |
+| <img src="docs/hedgehog-preview-v5.gif" width="128" height="88" alt="Animated pixel hedgehog"> | <img src="docs/skin-previews/poodle-preview.gif" width="128" height="88" alt="Animated pixel poodle"> | <img src="docs/skin-previews/capybara-preview.gif" width="128" height="88" alt="Animated pixel capybara walking, blinking, looking forward, and rolling"> |
 
 A tiny Windows desktop pet. Hedgehogs render at 64 × 44 pixels, with
 crisp retro pixel scaling. They walk on the top edges of ordinary windows,
@@ -14,15 +16,13 @@ other's back, rides briefly, then hops away.
 - New animals appear at a random position along the top of that monitor and fall in.
 - Drag an animal: relocate it.
 - Right-click an animal: choose **Hedgehog**, any PNG skin found in the `Images` folder,
-  or **Random**; remove that animal, close every animal while leaving the app running,
-  or remove every animal and exit. Animals set to **Random** choose a fresh random skin
+  or **Random**; remove that animal or remove every animal and exit. Animals set to **Random** choose a fresh random skin
   when duplicated.
-- The notification-area menu also offers **Add animal**, **Close all animals**, and
-  **Remove all animals and exit**.
+- The notification-area menu offers **Add animal** and **Remove all animals and exit**.
 
 ## Build and run
 
-The ready-to-run Windows release is in `releases/win-x64-v13/`.
+The ready-to-run Windows release is in `releases/win-x64-v14/`.
 Double-click `PixelHedgies.exe` there. Keep the accompanying DLLs in the same
 folder; this build does not require a separate .NET installation. The EXE is
 stored with Git LFS because it exceeds GitHub's regular file-size limit. Install
@@ -33,8 +33,9 @@ starting this one.
 ## Custom skins
 
 Place PNG files in the `Images` folder beside `PixelHedgies.exe`. The name before
-`.png` becomes the character name in the right-click **Change animal skin** menu;
-for example, `Capybara.png` adds **Capybara**. The menu rescans the folder each
+`.png` (or before `-frame-0.png`) becomes the character name in the right-click
+**Change animal skin** menu; for example, `Capybara-frame-0.png` adds
+**Capybara**. The menu rescans the folder each
 time it opens, so a newly added character does not require an app restart.
 Custom skins are also included in **Random**.
 
@@ -43,12 +44,14 @@ Custom skins are also included in **Random**.
   outside the animal transparent, with its feet near the bottom edge.
 - Direction: draw the head and face pointing **right**. The app mirrors the
   image automatically when the animal walks left.
-- Required frames: **one**. Name it `Name.png` (for example, `Capybara.png`)
-  or `Name-frame-0.png`. A single image is reused for all poses.
-- Optional frames: **one** additional walk frame, `Name-frame-1.png`, using
-  the same 64 × 44 canvas and facing right. It alternates with the first frame
-  while walking. `Name-frame-1.png` alone does not create a skin; more than two
-  frames are not used. Keep the body aligned between frames to avoid jumping.
+- Required frames: **one**. Name it `Name.png` or `Name-frame-0.png`.
+  `Name-frame-0.png` takes precedence if both exist. A single image is reused
+  for every missing pose.
+- Optional frames: up to **five** more, named `Name-frame-1.png` through
+  `Name-frame-5.png`. Frame 0 and 1 alternate while walking; frame 2 is blink,
+  frame 3 looks toward the viewer, frame 4 rolls, and frame 5 is idle. The app
+  also rotates frame 4 during a roll. Frames 1–5 alone do not create a skin.
+  Use the same 64 × 44 canvas and align the body between frames.
 
 To build from source, install the .NET 10 SDK on Windows, then run:
 

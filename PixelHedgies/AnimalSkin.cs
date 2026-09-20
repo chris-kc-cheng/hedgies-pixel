@@ -15,15 +15,21 @@ internal static class AnimalSkinSelection
         foreach (var path in Directory.EnumerateFiles(imageDirectory, "*.png")
                      .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
         {
-            var name = Path.GetFileNameWithoutExtension(path);
-            if (name.EndsWith("-frame-1", StringComparison.OrdinalIgnoreCase)) continue;
-            if (name.EndsWith("-frame-0", StringComparison.OrdinalIgnoreCase))
-                name = name[..^8];
+            var name = SkinNameFromFile(path);
+            if (name is null) continue;
             if (name.Equals(Random, StringComparison.OrdinalIgnoreCase) ||
                 skins.Contains(name, StringComparer.OrdinalIgnoreCase)) continue;
             skins.Add(name);
         }
         return skins;
+    }
+
+    internal static string? SkinNameFromFile(string path)
+    {
+        var name = Path.GetFileNameWithoutExtension(path);
+        var frameMarker = name.LastIndexOf("-frame-", StringComparison.OrdinalIgnoreCase);
+        if (frameMarker < 0 || !int.TryParse(name[(frameMarker + 7)..], out var frame)) return name;
+        return frame == 0 ? name[..frameMarker] : null;
     }
 
     internal static string Resolve(string selection, IReadOnlyList<string> skins, int randomIndex) =>
