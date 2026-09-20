@@ -13,8 +13,8 @@ other's back, rides briefly, then hops away.
 - Left-click an animal: add another with the same selected skin.
 - New animals appear at a random position along the top of that monitor and fall in.
 - Drag an animal: relocate it.
-- Right-click an animal: switch its skin between **Hedgehog**, **Poodle**, **Labubu**,
-  and **Random**, remove that animal, close every animal while leaving the app running,
+- Right-click an animal: choose **Hedgehog**, any PNG skin found in the `Images` folder,
+  or **Random**; remove that animal, close every animal while leaving the app running,
   or remove every animal and exit. Animals set to **Random** choose a fresh random skin
   when duplicated.
 - The notification-area menu also offers **Add animal**, **Close all animals**, and
@@ -22,13 +22,33 @@ other's back, rides briefly, then hops away.
 
 ## Build and run
 
-The ready-to-run Windows release is in `releases/win-x64-v12/`.
+The ready-to-run Windows release is in `releases/win-x64-v13/`.
 Double-click `PixelHedgies.exe` there. Keep the accompanying DLLs in the same
 folder; this build does not require a separate .NET installation. The EXE is
 stored with Git LFS because it exceeds GitHub's regular file-size limit. Install
 Git LFS before cloning, or run `git lfs pull` after cloning to download it.
 Exit any older Pixel Hedgies instance from its notification-area icon before
 starting this one.
+
+## Custom skins
+
+Place PNG files in the `Images` folder beside `PixelHedgies.exe`. The name before
+`.png` becomes the character name in the right-click **Change animal skin** menu;
+for example, `Capybara.png` adds **Capybara**. The menu rescans the folder each
+time it opens, so a newly added character does not require an app restart.
+Custom skins are also included in **Random**.
+
+- Format: PNG with transparency (RGBA). Use a 64 × 44 pixel canvas for sharp
+  1:1 display; other sizes load but are scaled into that area. Leave the area
+  outside the animal transparent, with its feet near the bottom edge.
+- Direction: draw the head and face pointing **right**. The app mirrors the
+  image automatically when the animal walks left.
+- Required frames: **one**. Name it `Name.png` (for example, `Capybara.png`)
+  or `Name-frame-0.png`. A single image is reused for all poses.
+- Optional frames: **one** additional walk frame, `Name-frame-1.png`, using
+  the same 64 × 44 canvas and facing right. It alternates with the first frame
+  while walking. `Name-frame-1.png` alone does not create a skin; more than two
+  frames are not used. Keep the body aligned between frames to avoid jumping.
 
 To build from source, install the .NET 10 SDK on Windows, then run:
 

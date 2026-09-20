@@ -46,7 +46,7 @@ public partial class App : System.Windows.Application
         // Enter from the top with enough body visible to notice the drop.
         // Feet begin below the top edge, avoiding an off-screen perch on a maximized window.
         var y = monitor.Top - Hedgehog.HeightPx + Hedgehog.HeightPx / 3;
-        var selection = parent?.SkinSelection ?? AnimalSkin.Hedgehog;
+        var selection = parent?.SkinSelection ?? AnimalSkinSelection.Hedgehog;
         var pet = new Hedgehog(this, x, y, selection);
         _hedgehogs.Add(pet);
         pet.Show();

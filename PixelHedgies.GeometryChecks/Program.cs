@@ -28,14 +28,17 @@ Check(MeetingRules.CloseEnough(100, 200, 145, 204, 80, 56), "nearby pets can mee
 Check(!MeetingRules.CloseEnough(100, 200, 160, 204, 80, 56), "distant pets do not meet");
 Check(!MeetingRules.CloseEnough(100, 200, 145, 230, 80, 56), "pets on different heights do not meet");
 
-Check(AnimalSkinSelection.Resolve(AnimalSkin.Poodle, 0) == AnimalSkin.Poodle,
+var availableSkins = new[] { "Hedgehog", "Poodle", "Labubu", "Stitch" };
+Check(AnimalSkinSelection.Resolve("Poodle", availableSkins, 0) == "Poodle",
     "a selected skin is preserved");
-Check(AnimalSkinSelection.Resolve(AnimalSkin.Random, 0) == AnimalSkin.Hedgehog,
+Check(AnimalSkinSelection.Resolve("Random", availableSkins, 0) == "Hedgehog",
     "random skin can select hedgehog");
-Check(AnimalSkinSelection.Resolve(AnimalSkin.Random, 1) == AnimalSkin.Poodle,
+Check(AnimalSkinSelection.Resolve("Random", availableSkins, 1) == "Poodle",
     "random skin can select poodle");
-Check(AnimalSkinSelection.Resolve(AnimalSkin.Random, 2) == AnimalSkin.Labubu,
+Check(AnimalSkinSelection.Resolve("Random", availableSkins, 2) == "Labubu",
     "random skin can select Labubu");
+Check(AnimalSkinSelection.Resolve("Random", availableSkins, 3) == "Stitch",
+    "random skin can select a discovered character");
 
 Console.WriteLine("All geometry checks passed.");
 

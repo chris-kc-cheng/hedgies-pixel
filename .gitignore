@@ -5,3 +5,4 @@
 dotnet-install.ps1
 .dotnet/
 NuGet/
+releases/**/*.pdb

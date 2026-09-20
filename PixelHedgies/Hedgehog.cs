@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.IO;
 using Path = System.Windows.Shapes.Path;
 using Forms = System.Windows.Forms;
 
@@ -19,12 +20,9 @@ internal sealed class Hedgehog : Window
     private const double Gravity = 1100;
     private const double WalkSpeed = 30;
     private enum Trick { None, Blink, Look, Roll }
-    private static readonly Dictionary<AnimalSkin, Lazy<BitmapSource[]>> Frames = new()
-    {
-        [AnimalSkin.Hedgehog] = new(LoadFrames),
-        [AnimalSkin.Poodle] = new(() => LoadSkinFrames("poodle")),
-        [AnimalSkin.Labubu] = new(() => LoadSkinFrames("labubu"))
-    };
+    private static readonly string ImageDirectory = System.IO.Path.Combine(AppContext.BaseDirectory, "Images");
+    private static readonly Lazy<BitmapSource[]> HedgehogFrames = new(LoadFrames);
+    private static readonly Dictionary<string, BitmapSource[]> FileFrames = new(StringComparer.OrdinalIgnoreCase);
     private readonly App _app;
     private readonly ImageBrush _sprite;
     private readonly Border _body;
@@ -56,19 +54,19 @@ internal sealed class Hedgehog : Window
     private double _dragOffsetY;
     private Hedgehog? _host;
     private Hedgehog? _rider;
-    private AnimalSkin _skin;
+    private string _skin;
     private Forms.ContextMenuStrip? _contextMenu;
 
     public double X { get; private set; }
     public double Y { get; private set; }
     internal bool IsRiding => _host is not null;
-    internal AnimalSkin SkinSelection { get; private set; }
+    internal string SkinSelection { get; private set; }
 
-    public Hedgehog(App app, double x, double y, AnimalSkin skinSelection)
+    public Hedgehog(App app, double x, double y, string skinSelection)
     {
         _app = app;
         SkinSelection = skinSelection;
-        _skin = AnimalSkinSelection.Resolve(skinSelection, Random.Shared.Next());
+        _skin = AnimalSkinSelection.Resolve(skinSelection, AnimalSkinSelection.Discover(ImageDirectory), Random.Shared.Next());
         X = x;
         Y = y;
         Width = WidthPx;
@@ -81,7 +79,7 @@ internal sealed class Hedgehog : Window
         ShowActivated = false;
         Topmost = true;
 
-        _sprite = new ImageBrush(Frames[_skin].Value[0]) { Stretch = Stretch.Uniform, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Bottom };
+        _sprite = new ImageBrush(GetFrames(_skin)[0]) { Stretch = Stretch.Uniform, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Bottom };
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
         _body = new Border
         {
@@ -116,11 +114,29 @@ internal sealed class Hedgehog : Window
         MouseRightButtonUp += OnRightUp;
     }
 
-    private static BitmapSource[] LoadSkinFrames(string skin)
+    private static BitmapSource[] GetFrames(string skin)
     {
-        var first = new BitmapImage(new Uri($"pack://application:,,,/Assets/{skin}-frame-0.png"));
-        var second = new BitmapImage(new Uri($"pack://application:,,,/Assets/{skin}-frame-1.png"));
-        return [first, second, first, first, first, first];
+        if (skin.Equals(AnimalSkinSelection.Hedgehog, StringComparison.OrdinalIgnoreCase)) return HedgehogFrames.Value;
+        if (FileFrames.TryGetValue(skin, out var frames)) return frames;
+        var single = System.IO.Path.Combine(ImageDirectory, skin + ".png");
+        var firstPath = File.Exists(single) ? single : System.IO.Path.Combine(ImageDirectory, skin + "-frame-0.png");
+        var secondPath = System.IO.Path.Combine(ImageDirectory, skin + "-frame-1.png");
+        var first = LoadImage(firstPath);
+        var second = File.Exists(secondPath) ? LoadImage(secondPath) : first;
+        frames = [first, second, first, first, first, first];
+        FileFrames[skin] = frames;
+        return frames;
+    }
+
+    private static BitmapSource LoadImage(string path)
+    {
+        var image = new BitmapImage();
+        image.BeginInit();
+        image.CacheOption = BitmapCacheOption.OnLoad;
+        image.UriSource = new Uri(path);
+        image.EndInit();
+        image.Freeze();
+        return image;
     }
 
     private static BitmapSource[] LoadFrames()
@@ -368,14 +384,14 @@ internal sealed class Hedgehog : Window
     private void ShowFrame(int frame)
     {
         if (frame == _currentFrame) return;
-        _sprite.ImageSource = Frames[_skin].Value[frame];
+        _sprite.ImageSource = GetFrames(_skin)[frame];
         _currentFrame = frame;
         PlaceFarFrontFoot(frame);
     }
 
     private void PlaceFarFrontFoot(int frame)
     {
-        _farFrontFoot.Visibility = _skin == AnimalSkin.Hedgehog && frame is 0 or 1 or 5
+        _farFrontFoot.Visibility = _skin.Equals(AnimalSkinSelection.Hedgehog, StringComparison.OrdinalIgnoreCase) && frame is 0 or 1 or 5
             ? Visibility.Visible
             : Visibility.Hidden;
         var scale = _body.Width / WidthPx;
@@ -457,11 +473,11 @@ internal sealed class Hedgehog : Window
             if (ReferenceEquals(_contextMenu, menu)) _contextMenu = null;
         };
         var skins = new Forms.ToolStripMenuItem("Change animal skin");
-        foreach (var choice in Enum.GetValues<AnimalSkin>())
+        foreach (var choice in AnimalSkinSelection.Discover(ImageDirectory).Append(AnimalSkinSelection.Random))
         {
             var item = new Forms.ToolStripMenuItem(choice.ToString())
             {
-                Checked = SkinSelection == choice
+                Checked = SkinSelection.Equals(choice, StringComparison.OrdinalIgnoreCase)
             };
             item.Click += (_, _) => ChangeSkin(choice);
             skins.DropDownItems.Add(item);
@@ -475,10 +491,10 @@ internal sealed class Hedgehog : Window
         e.Handled = true;
     }
 
-    private void ChangeSkin(AnimalSkin selection)
+    private void ChangeSkin(string selection)
     {
         SkinSelection = selection;
-        _skin = AnimalSkinSelection.Resolve(selection, Random.Shared.Next());
+        _skin = AnimalSkinSelection.Resolve(selection, AnimalSkinSelection.Discover(ImageDirectory), Random.Shared.Next());
         _currentFrame = -1;
         ShowFrame(0);
     }
