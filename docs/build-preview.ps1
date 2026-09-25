@@ -7,6 +7,7 @@ $framesDir = Join-Path $repo '.tools/preview-frames-v5'
 New-Item -ItemType Directory -Path $framesDir -Force | Out-Null
 $sheet = [System.Drawing.Bitmap]::new($sheetPath)
 $walk = [System.Drawing.Bitmap]::new($walkPath)
+$walkFrameWidth = [int][Math]::Floor($walk.Width / 2)
 $footFill = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(119, 55, 39))
 $footOutline = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(32, 19, 17), 1)
 # Every pose is rendered directly from the sheet, exactly like the application.
@@ -25,24 +26,25 @@ try {
             $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
             $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
             if ($pose -match '^(walk|idle)') {
-                $footX = if ($pose -eq 'walk1') { 38 } elseif ($pose -eq 'idle') { 35 } else { 32 }
-                $footPoints = [System.Drawing.Point[]]@(
-                    [System.Drawing.Point]::new(($footX + 1), 36),
-                    [System.Drawing.Point]::new(($footX + 5), 36),
-                    [System.Drawing.Point]::new(($footX + 5), 39),
-                    [System.Drawing.Point]::new(($footX + 7), 39),
-                    [System.Drawing.Point]::new(($footX + 7), 43),
-                    [System.Drawing.Point]::new($footX, 43),
-                    [System.Drawing.Point]::new($footX, 40)
-                )
-                $g.FillPolygon($footFill, $footPoints)
-                $g.DrawPolygon($footOutline, $footPoints)
                 if ($pose -eq 'idle') {
+                    $footX = 35
+                    $footPoints = [System.Drawing.Point[]]@(
+                        [System.Drawing.Point]::new(($footX + 1), 36),
+                        [System.Drawing.Point]::new(($footX + 5), 36),
+                        [System.Drawing.Point]::new(($footX + 5), 39),
+                        [System.Drawing.Point]::new(($footX + 7), 39),
+                        [System.Drawing.Point]::new(($footX + 7), 43),
+                        [System.Drawing.Point]::new($footX, 43),
+                        [System.Drawing.Point]::new($footX, 40)
+                    )
+                    $g.FillPolygon($footFill, $footPoints)
+                    $g.DrawPolygon($footOutline, $footPoints)
                     $source = [System.Drawing.Rectangle]::new(1064, 542, 432, 420)
                     $target = [System.Drawing.Rectangle]::new(9, 0, 46, 44)
                 } else {
                     $column = if ($pose -eq 'walk0') { 0 } else { 1 }
-                    $source = [System.Drawing.Rectangle]::new(($column * 768), 240, 768, 620)
+                    $sourceWidth = if ($column -eq 0) { $walkFrameWidth } else { $walk.Width - $walkFrameWidth }
+                    $source = [System.Drawing.Rectangle]::new(($column * $walkFrameWidth), 240, $sourceWidth, 620)
                     $target = [System.Drawing.Rectangle]::new(4, 0, 56, 44)
                 }
                 $sourceImage = if ($pose -eq 'idle') { $sheet } else { $walk }

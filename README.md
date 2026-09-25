@@ -1,14 +1,25 @@
 # Pixel Hedgies
 
-| Hedgehog | Poodle | Capybara |
-| --- | --- | --- |
-| <img src="docs/hedgehog-preview-v5.gif" width="128" height="88" alt="Animated pixel hedgehog"> | <img src="docs/skin-previews/poodle-preview.gif" width="128" height="88" alt="Animated pixel poodle"> | <img src="docs/skin-previews/capybara-preview.gif" width="128" height="88" alt="Animated pixel capybara walking, blinking, looking forward, and rolling"> |
+| Hedgehog | Poodle | Capybara | Rabbit | Beaver |
+| --- | --- | --- | --- | --- |
+| <img src="docs/hedgehog-preview-v5.gif" width="128" height="88" alt="Animated pixel hedgehog"> | <img src="docs/skin-previews/poodle-preview.gif" width="128" height="88" alt="Animated pixel poodle walking"> | <img src="docs/skin-previews/capybara-preview.gif" width="128" height="88" alt="Animated pixel capybara walking"> | <img src="docs/skin-previews/rabbit-preview.gif" width="128" height="88" alt="Animated pixel rabbit hopping"> | <img src="docs/skin-previews/beaver-preview.gif" width="128" height="88" alt="Animated pixel beaver walking"> |
 
 A tiny Windows desktop pet. Hedgehogs render at 64 × 44 pixels, with
 crisp retro pixel scaling. They walk on the top edges of ordinary windows,
 including the Windows 11 taskbar, fall when they wander off, and land on another
 window or the monitor's bottom edge. When two meet, one scrambles onto the
 other's back, rides briefly, then hops away.
+
+## Included designs
+
+- **Hedgehog** is the built-in character. Its action artwork is embedded in the app.
+- **Poodle**, **Capybara**, **Rabbit**, and **Beaver** are file-based skins in
+  `PixelHedgies/Images`; builds and published packages copy them into the external
+  `Images` folder beside the executable.
+- Every included design has a corresponding animated GIF in the preview table
+  above. The GIF must be regenerated whenever that design's frames change.
+- Walking previews must show real changes in leg position, bend, lift, and foot
+  contact. A color swap without geometric leg movement is not a valid animation.
 
 ## Controls
 
@@ -65,14 +76,26 @@ The window-overlap geometry checks can be run with:
 dotnet run --project PixelHedgies.GeometryChecks/PixelHedgies.GeometryChecks.csproj
 ```
 
+To regenerate the transparent 64 × 44 packaged skin frames and their matching
+GIF previews after changing any non-hedgehog design, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File docs/build-skin-previews.ps1
+```
+
+Hedgehog artwork uses its separate full-action preview pipeline:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File docs/build-preview.ps1
+```
+
 To publish a self-contained Windows build:
 
 ```powershell
 dotnet publish PixelHedgies/PixelHedgies.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 ```
 
-The current action sheet lives at `PixelHedgies/Assets/hedgehog-actions-v4.png`, and the two-frame walk strip at `PixelHedgies/Assets/hedgehog-walk-retro-v2.png`. The belly is never clipped; a dark far-side front paw is drawn behind the sprite to keep both front feet visible at 64 × 44 pixels.
-The original sprite remains at `PixelHedgies/Assets/hedgehog.png`. The app intentionally
-does not install itself at startup or require administrator privileges. The
+The current action sheet lives at `PixelHedgies/Assets/hedgehog-actions-v4.png`, and the two-frame walk strip at `PixelHedgies/Assets/hedgehog-walk-retro-v2.png`. Packaged non-hedgehog skins live in `PixelHedgies/Images` and are copied beside the app at build and publish time rather than being embedded as hard-coded resources.
+The app intentionally does not install itself at startup or require administrator privileges. The
 hedgehogs are always on top of ordinary windows; fullscreen games and some
 protected/system windows are outside the scope of this version.

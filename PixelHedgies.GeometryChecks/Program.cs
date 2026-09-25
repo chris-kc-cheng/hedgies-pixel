@@ -28,16 +28,16 @@ Check(MeetingRules.CloseEnough(100, 200, 145, 204, 80, 56), "nearby pets can mee
 Check(!MeetingRules.CloseEnough(100, 200, 160, 204, 80, 56), "distant pets do not meet");
 Check(!MeetingRules.CloseEnough(100, 200, 145, 230, 80, 56), "pets on different heights do not meet");
 
-var availableSkins = new[] { "Hedgehog", "Poodle", "Labubu", "Stitch" };
+var availableSkins = new[] { "Hedgehog", "Poodle", "Rabbit", "Beaver" };
 Check(AnimalSkinSelection.Resolve("Poodle", availableSkins, 0) == "Poodle",
     "a selected skin is preserved");
 Check(AnimalSkinSelection.Resolve("Random", availableSkins, 0) == "Hedgehog",
     "random skin can select hedgehog");
 Check(AnimalSkinSelection.Resolve("Random", availableSkins, 1) == "Poodle",
     "random skin can select poodle");
-Check(AnimalSkinSelection.Resolve("Random", availableSkins, 2) == "Labubu",
-    "random skin can select Labubu");
-Check(AnimalSkinSelection.Resolve("Random", availableSkins, 3) == "Stitch",
+Check(AnimalSkinSelection.Resolve("Random", availableSkins, 2) == "Rabbit",
+    "random skin can select rabbit");
+Check(AnimalSkinSelection.Resolve("Random", availableSkins, 3) == "Beaver",
     "random skin can select a discovered character");
 Check(AnimalSkinSelection.SkinNameFromFile("Capybara-frame-0.png") == "Capybara",
     "first animation frame discovers one character");

@@ -1,10 +1,15 @@
 Add-Type -AssemblyName System.Drawing
 
+$repo = Split-Path -Parent $PSScriptRoot
 $previewDir = Join-Path $PSScriptRoot 'skin-previews'
-$gifFramesDir = Join-Path (Split-Path -Parent $PSScriptRoot) '.tools/skin-preview-frames'
+$imagesDir = Join-Path $repo 'PixelHedgies/Images'
+$releaseImagesDir = Join-Path $repo 'releases/win-x64-v14/Images'
+$gifFramesDir = Join-Path $repo '.tools/skin-preview-frames'
 New-Item -ItemType Directory -Path $gifFramesDir -Force | Out-Null
-foreach ($skin in @('poodle', 'labubu')) {
-    $sourcePath = Join-Path $previewDir "$skin-walk.png"
+
+foreach ($skin in @('Poodle', 'Capybara', 'Rabbit', 'Beaver')) {
+    $key = $skin.ToLowerInvariant()
+    $sourcePath = Join-Path $previewDir "$key-walk.png"
     $source = [System.Drawing.Bitmap]::new($sourcePath)
     try {
         $halfWidth = [int][Math]::Floor($source.Width / 2)
@@ -27,6 +32,7 @@ foreach ($skin in @('poodle', 'labubu')) {
             $bounds += [System.Drawing.Rectangle]::new($minX, $minY, $maxX - $minX + 1, $maxY - $minY + 1)
         }
 
+        # One scale for both poses prevents apparent body-size changes.
         $maxWidth = [Math]::Max($bounds[0].Width, $bounds[1].Width)
         $maxHeight = [Math]::Max($bounds[0].Height, $bounds[1].Height)
         $scale = [Math]::Min(60.0 / $maxWidth, 40.0 / $maxHeight)
@@ -42,59 +48,10 @@ foreach ($skin in @('poodle', 'labubu')) {
                 $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
                 $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
                 $graphics.DrawImage($source, $target, $crop, [System.Drawing.GraphicsUnit]::Pixel)
-                # The generated walk poses barely move at 64x44. Replace the feet
-                # with deliberate opposing steps so the preview shows a readable gait.
-                $outline = [System.Drawing.Color]::FromArgb(40, 23, 18)
-                $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
-                if ($skin -eq 'poodle') {
-                    $graphics.FillRectangle([System.Drawing.Brushes]::Transparent, 12, 39, 40, 4)
-                    $legs = if ($frame -eq 0) {
-                        @(@(18, 36, 15, 39, 6, 2), @(41, 36, 45, 39, 6, 2))
-                    } else {
-                        @(@(18, 36, 21, 39, 6, 2), @(41, 36, 35, 39, 6, 2))
-                    }
-                    $fill = [System.Drawing.Color]::FromArgb(246, 209, 167)
-                } else {
-                    $graphics.FillRectangle([System.Drawing.Brushes]::Transparent, 20, 38, 22, 5)
-                    $legs = if ($frame -eq 0) {
-                        @(@(26, 35, 22, 39, 6, 2), @(34, 35, 36, 39, 6, 2))
-                    } else {
-                        @(@(26, 35, 29, 39, 6, 2), @(34, 35, 29, 39, 6, 2))
-                    }
-                    $fill = [System.Drawing.Color]::FromArgb(170, 103, 69)
-                }
-                $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
-                foreach ($leg in $legs) {
-                    $hipX, $hipY, $footX, $footY, $footWidth, $footHeight = $leg
-                    $points = [System.Drawing.Point[]]@(
-                        [System.Drawing.Point]::new($hipX - 2, $hipY),
-                        [System.Drawing.Point]::new($hipX + 3, $hipY),
-                        [System.Drawing.Point]::new($footX + $footWidth - 2, $footY),
-                        [System.Drawing.Point]::new($footX + $footWidth, $footY + $footHeight),
-                        [System.Drawing.Point]::new($footX, $footY + $footHeight),
-                        [System.Drawing.Point]::new($footX, $footY)
-                    )
-                    $brush = [System.Drawing.SolidBrush]::new($fill)
-                    $pen = [System.Drawing.Pen]::new($outline, 1)
-                    try {
-                        $graphics.FillPolygon($brush, $points)
-                        $graphics.DrawPolygon($pen, $points)
-                    } finally {
-                        $brush.Dispose()
-                        $pen.Dispose()
-                    }
-                }
-                $canvas.Save((Join-Path $previewDir "$skin-frame-$frame.png"), [System.Drawing.Imaging.ImageFormat]::Png)
-                $preview = [System.Drawing.Bitmap]::new(64, 44, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-                $previewGraphics = [System.Drawing.Graphics]::FromImage($preview)
-                try {
-                    $previewGraphics.Clear([System.Drawing.Color]::FromArgb(238, 242, 245))
-                    $previewGraphics.DrawImageUnscaled($canvas, 0, 0)
-                    $preview.Save((Join-Path $gifFramesDir "$skin-frame-$frame.png"), [System.Drawing.Imaging.ImageFormat]::Png)
-                } finally {
-                    $previewGraphics.Dispose()
-                    $preview.Dispose()
-                }
+                $frameName = "$skin-frame-$frame.png"
+                $canvas.Save((Join-Path $imagesDir $frameName), [System.Drawing.Imaging.ImageFormat]::Png)
+                $canvas.Save((Join-Path $releaseImagesDir $frameName), [System.Drawing.Imaging.ImageFormat]::Png)
+                $canvas.Save((Join-Path $gifFramesDir "$key-frame-$frame.png"), [System.Drawing.Imaging.ImageFormat]::Png)
             } finally {
                 $graphics.Dispose()
                 $canvas.Dispose()
@@ -104,8 +61,8 @@ foreach ($skin in @('poodle', 'labubu')) {
         $source.Dispose()
     }
 
-    & ffmpeg -hide_banner -loglevel error -y -framerate 4 -i (Join-Path $gifFramesDir "$skin-frame-%d.png") `
+    & ffmpeg -hide_banner -loglevel error -y -framerate 4 -i (Join-Path $gifFramesDir "$key-frame-%d.png") `
         -filter_complex '[0:v]scale=256:176:flags=neighbor,split[a][b];[a]palettegen=reserve_transparent=1[p];[b][p]paletteuse' `
-        -loop 0 (Join-Path $previewDir "$skin-preview.gif")
+        -loop 0 (Join-Path $previewDir "$key-preview.gif")
     if ($LASTEXITCODE -ne 0) { throw "GIF encoding failed for $skin" }
 }

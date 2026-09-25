@@ -396,12 +396,14 @@ internal sealed class Hedgehog : Window
 
     private void PlaceFarFrontFoot(int frame)
     {
-        _farFrontFoot.Visibility = _skin.Equals(AnimalSkinSelection.Hedgehog, StringComparison.OrdinalIgnoreCase) && frame is 0 or 1 or 5
+        // The walk strip contains all four articulated legs. The extra far-side
+        // foot is only needed by the idle artwork.
+        _farFrontFoot.Visibility = _skin.Equals(AnimalSkinSelection.Hedgehog, StringComparison.OrdinalIgnoreCase) && frame == 5
             ? Visibility.Visible
             : Visibility.Hidden;
         var scale = _body.Width / WidthPx;
         _farFrontFoot.RenderTransform = new ScaleTransform(scale, scale);
-        Canvas.SetLeft(_farFrontFoot, (frame == 1 ? 38 : frame == 5 ? 35 : 32) * scale);
+        Canvas.SetLeft(_farFrontFoot, 35 * scale);
         Canvas.SetTop(_farFrontFoot, 36 * scale);
     }
 
